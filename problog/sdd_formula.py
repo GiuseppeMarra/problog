@@ -226,15 +226,7 @@ class SDDManager(DDManager):
         self._assigned_varcount = 0
 
     def _to_x_constrained_list(self, varcount, var_constraint):
-        """
-        Convert the X-constrained var_constraint into a list of size varcount+1 specifying variables X. For variables i
-        where 1 ≤ i ≤ varcount, if is_X_var[i] is 1 then i is in X, and if it is 0 then i is not in X.
-        :param varcount: The amount of variables the vtree must have. This must be at least as high as the highest
-            number in var_constraint.
-        :param var_constraint: The X-constrained variable constraint
-        :type var_constraint: x_constrained
-        :return: The is_x_var input for the X-constrained vTree
-        """
+        """ Convert the X-constrained var_constraint into a list of size varcount+1 specifying variables X. For variables i where 1 <= i <= varcount, if is_X_var[i] is 1 then i is in X, and if it is 0 then i is not in X. :param varcount: The amount of variables the vtree must have. This must be at least as high as the highest number in var_constraint. :param var_constraint: The X-constrained variable constraint :type var_constraint: x_constrained :return: The is_x_var input for the X-constrained vTree """
         is_x_var = [0] * (varcount + 1)
         if var_constraint is not None and len(var_constraint) > 0:
             for x in var_constraint.X:

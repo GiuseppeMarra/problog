@@ -28,7 +28,8 @@ from __future__ import print_function
 from .logic import Term
 from .core import transform
 from .util import Timer
-from .formula import LogicFormula, LogicDAG
+from .formula import BaseFormula, LogicFormula, LogicDAG
+from .constraint import TrueConstraint
 
 from collections import defaultdict
 import logging
@@ -59,8 +60,6 @@ def break_cycles(source, target, translation=None, **kwdargs):
                 newnode = n
             target.add_name(q, newnode, l)
 
-        # TODO copy constraints
-
         translation = defaultdict(list)
         for q, n, v in source.evidence_all():
             if source.is_probabilistic(n):
@@ -76,6 +75,22 @@ def break_cycles(source, target, translation=None, **kwdargs):
                 target.add_name(q, newnode, target.LABEL_EVIDENCE_NEG)
             else:
                 target.add_name(q, newnode, target.LABEL_EVIDENCE_MAYBE)
+
+        #TODO GIUSEPPE: for now, only for single atom constraints
+        for c in BaseFormula.constraints(source):
+            if isinstance(c, TrueConstraint):
+                n = c.as_clauses()[0][0]
+                if source.is_probabilistic(n):
+                    newnode = _break_cycles(source, target, abs(n), [], cycles_broken,
+                                            content, translation, is_evidence=True)
+                else:
+                    newnode = n
+                target.add_constraint(TrueConstraint(newnode))
+
+
+
+
+
 
         logger.debug("Ground program size: %s", len(target))
         return target
