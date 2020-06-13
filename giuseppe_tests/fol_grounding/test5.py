@@ -45,13 +45,12 @@ def analyse_constraint(c, vars):
     else:
         raise Exception("GroundingError: malformed constraint")
 
-constants = [non_constrained_logic_formula.]
+# constants = [non_constrained_logic_formula.]
 
-
-for c in p.constraints():
-    vars = []
-    analyse_constraint(c.op, vars)
-    for
+# for c in p.constraints():
+#     vars = []
+#     analyse_constraint(c.op, vars)
+#     for
 
 # @transform(ConstrainedLogicProgram, LogicFormula)
 # def createConstraintLogicProgram(model, destination, **kwargs):

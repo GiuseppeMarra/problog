@@ -171,20 +171,20 @@ class Formula(object):
         return self._to_string(self.root)
 
     def _merge(self,lst1,lst2):
-        L = [l for l in lst1]
+        L = []
         for l in lst2:
             if l not in lst1:
                 L.append(l)
 
-        return L
+        return L + list(lst1)
 
     def _add_evidences(self, evidence_strings, node):
         if node.op == ATOM:
-            vars = node.name.split("(")[1].split(")")[0].split(".")
+            vars = node.name.split("(")[1].split(")")[0].split(",")
             return node.name, vars
         elif node.op == NOT:
             name = node.children[0].name
-            vars = name.split("(")[1].split(")")[0].split(".")
+            vars = name.split("(")[1].split(")")[0].split(",")
             return "not "+ name, vars
         elif node.op == AND:
             first, first_vars = self._add_evidences(evidence_strings, node.children[0])

@@ -41,21 +41,23 @@ def cProbLog2LogicFormula(model,destination=None, **kwdargs):
     for c in constraints:
             d = c.split("constraint(")[1][:-1] #skip last parenthesis
             D.append("(%s)" % d)
-    D = " and ".join(D)
-    L = [s.replace("not", "\\+") for s in Formula(definition=D).to_evidence()]
+    if len(D)>0:
+        D = " and ".join(D)
+        L = [s.replace("not", "\\+") for s in Formula(definition=D).to_evidence()]
 
-    problog_program.extend(L[:-1])
-    evidences.append(L[-1])
-    new_model = ".\n".join(preprocess(problog_program) + preprocess(evidences) + preprocess(queries)) + "."
-    print(new_model)
-    problog_formula = LogicFormula.create_from(PrologString(new_model))
+        problog_program.extend(L[:-1])
+        evidences.append(L[-1])
+        model = ".\n".join(preprocess(problog_program) + preprocess(evidences) + preprocess(queries)) + "."
+        print(model)
+    problog_formula = LogicFormula.create_from(PrologString(model))
     keys = []
-    for k, v  in problog_formula._names[problog_formula.LABEL_EVIDENCE_POS].items():
-        if EVID in k.functor:
-            keys.append((k,v))
-    for k,v in keys:
-        problog_formula._names[problog_formula.LABEL_EVIDENCE_POS].pop(k)
-        problog_formula.add_constraint(TrueConstraint(v))
+    # for k, v  in problog_formula._names[problog_formula.LABEL_EVIDENCE_POS].items():
+    #     if EVID in k.functor:
+    #         keys.append((k,v))
+
+    # for k,v in keys:
+    #     problog_formula._names[problog_formula.LABEL_EVIDENCE_POS].pop(k)
+    #     problog_formula.add_constraint(TrueConstraint(v))
         # problog_formula.add_name(name=k,key=v, label=problog_formula.LABEL_EVIDENCE_POS)
 
 

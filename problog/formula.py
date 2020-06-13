@@ -60,6 +60,11 @@ class BaseFormula(ProbLogObject):
     LABEL_EVIDENCE_POS = "evidence+"
     LABEL_EVIDENCE_NEG = "evidence-"
     LABEL_EVIDENCE_MAYBE = "evidence?"
+
+
+    LABEL_CONSTRAINT= "constraint"
+
+
     LABEL_NAMED = "named"
 
     def __init__(self):
@@ -197,6 +202,7 @@ class BaseFormula(ProbLogObject):
         :type key: int | bool
         :param label: type of label (one of LABEL_*)
         """
+
         if label is None:
             label = self.LABEL_NAMED
         self._names[label][name] = key
@@ -298,7 +304,7 @@ class BaseFormula(ProbLogObject):
         """
         result = []
         for name, node, label in self.get_names_with_label():
-            if label not in (self.LABEL_NAMED, self.LABEL_EVIDENCE_POS, self.LABEL_EVIDENCE_NEG, self.LABEL_EVIDENCE_MAYBE):
+            if label not in (self.LABEL_NAMED, self.LABEL_CONSTRAINT, self.LABEL_EVIDENCE_POS, self.LABEL_EVIDENCE_NEG, self.LABEL_EVIDENCE_MAYBE):
                 result.append((name, node, label))
         return result
 

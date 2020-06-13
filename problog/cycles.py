@@ -80,11 +80,15 @@ def break_cycles(source, target, translation=None, **kwdargs):
         for c in BaseFormula.constraints(source):
             if isinstance(c, TrueConstraint):
                 n = c.as_clauses()[0][0]
+
+
                 if source.is_probabilistic(n):
                     newnode = _break_cycles(source, target, abs(n), [], cycles_broken,
                                             content, translation, is_evidence=True)
                 else:
                     newnode = n
+                if n is not None and n < 0:
+                    newnode = target.negate(newnode)
                 target.add_constraint(TrueConstraint(newnode))
 
 

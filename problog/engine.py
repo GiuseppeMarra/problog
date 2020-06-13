@@ -35,6 +35,7 @@ from .engine_unify import *
 from .core import transform
 from .errors import GroundingError, NonGroundQuery
 from .util import Timer
+from .constraint import TrueConstraint
 
 from subprocess import CalledProcessError
 
@@ -414,6 +415,25 @@ class ClauseDBEngine(GenericEngine):
                 raise UnknownClause(term.signature, location=db.lineno(term.location))
         return gp, results
 
+    def ground_constraints(self, db, target, constraints):
+        logger = logging.getLogger('problog')
+        # Ground constraints
+        for query in constraints:
+            logger.debug("Grounding constraints '%s'", query[0])
+            target = self.ground(db, query[0], target, label=target.LABEL_CONSTRAINT, is_root=True)
+            logger.debug("Ground program size: %s", len(target))
+        keys = []
+        for k, v in target._names[target.LABEL_CONSTRAINT].items():
+                keys.append((k,v))
+        for k,v in keys:
+            target._names[target.LABEL_CONSTRAINT].pop(k)
+            target.add_constraint(TrueConstraint(v))
+
+        # for k,v in target.get_names(label=target.LABEL_CONSTRAINT):
+        #     target.add_constraint(TrueConstraint(v))
+
+
+
     def ground_evidence(self, db, target, evidence, propagate_evidence=False):
         logger = logging.getLogger('problog')
         # Ground evidence
@@ -453,7 +473,7 @@ class ClauseDBEngine(GenericEngine):
             target = self.ground(db, query, target, label=label)
             logger.debug("Ground program size: %s", len(target))
 
-    def ground_all(self, db, target=None, queries=None, evidence=None, propagate_evidence=False, labels=None):
+    def ground_all(self, db, target=None, queries=None, evidence=None, propagate_evidence=False, labels=None, constraints=None):
         if labels is None:
             labels = []
         # Initialize target if not given.
@@ -475,6 +495,10 @@ class ClauseDBEngine(GenericEngine):
                 evidence = self.query(db, Term('evidence', None, None))
                 evidence += self.query(db, Term('evidence', None))
 
+            if constraints is None:
+                constraints = self.query(db, Term('constraint', None, None))
+                constraints += self.query(db, Term('constraint', None))
+
             queries = [(target.LABEL_QUERY, q) for q in queries]
             for label, arity in labels:
                 queries += [(label, q[0]) for q in self.query(db, Term(label, *([None] * arity)))]
@@ -485,12 +509,14 @@ class ClauseDBEngine(GenericEngine):
             # Ground queries
             if propagate_evidence:
                 self.ground_evidence(db, target, evidence, propagate_evidence=propagate_evidence)
+                self.ground_constraints(db, target, constraints)
                 self.ground_queries(db, target, queries)
                 if hasattr(target, 'lookup_evidence'):
                     logger.debug('Propagated evidence: %s' % list(target.lookup_evidence))
             else:
                 self.ground_queries(db, target, queries)
                 self.ground_evidence(db, target, evidence)
+                self.ground_constraints(db, target, constraints)
         return target
 
     def add_external_calls(self, externals):
