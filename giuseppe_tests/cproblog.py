@@ -2,7 +2,7 @@ from problog.program import PrologString
 from problog.formula import LogicFormula
 from problog.core import transform
 from problog.constraint import TrueConstraint
-from simple_version.fol_parser import Formula, EVID
+from fol_parser import Formula, EVID
 import re
 
 

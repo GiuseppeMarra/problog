@@ -202,7 +202,6 @@ class BaseFormula(ProbLogObject):
         :type key: int | bool
         :param label: type of label (one of LABEL_*)
         """
-
         if label is None:
             label = self.LABEL_NAMED
         self._names[label][name] = key

@@ -76,24 +76,22 @@ def break_cycles(source, target, translation=None, **kwdargs):
             else:
                 target.add_name(q, newnode, target.LABEL_EVIDENCE_MAYBE)
 
-        #TODO GIUSEPPE: for now, only for single atom constraints
+        constraint_rename_dict = {}
         for c in BaseFormula.constraints(source):
-            if isinstance(c, TrueConstraint):
-                n = c.as_clauses()[0][0]
-
-
+            for n in c.get_nodes():
                 if source.is_probabilistic(n):
                     newnode = _break_cycles(source, target, abs(n), [], cycles_broken,
                                             content, translation, is_evidence=True)
                 else:
                     newnode = n
+                constraint_rename_dict[n] = newnode
                 if n is not None and n < 0:
                     newnode = target.negate(newnode)
-                target.add_constraint(TrueConstraint(newnode))
+                q = source.get_name(n)
+                target.add_name(q, newnode, target.LABEL_CONSTRAINT)
 
-
-
-
+        for c in BaseFormula.constraints(source):
+            target.add_constraint(c.copy(rename=constraint_rename_dict))
 
 
         logger.debug("Ground program size: %s", len(target))

@@ -266,6 +266,9 @@ class ClauseConstraint(Constraint):
     def __init__(self, nodes):
         self.nodes = nodes
 
+    def get_nodes(self):
+        return self.nodes
+
     def as_clauses(self):
         return [self.nodes]
 

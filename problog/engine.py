@@ -422,17 +422,9 @@ class ClauseDBEngine(GenericEngine):
             logger.debug("Grounding constraints '%s'", query[0])
             target = self.ground(db, query[0], target, label=target.LABEL_CONSTRAINT, is_root=True)
             logger.debug("Ground program size: %s", len(target))
-        keys = []
-        for k, v in target._names[target.LABEL_CONSTRAINT].items():
-                keys.append((k,v))
-        for k,v in keys:
-            target._names[target.LABEL_CONSTRAINT].pop(k)
+        for _, v in target.get_names(label=target.LABEL_CONSTRAINT):
+            # TODO: If we want to add more constraint types, you have to change this here.
             target.add_constraint(TrueConstraint(v))
-
-        # for k,v in target.get_names(label=target.LABEL_CONSTRAINT):
-        #     target.add_constraint(TrueConstraint(v))
-
-
 
     def ground_evidence(self, db, target, evidence, propagate_evidence=False):
         logger = logging.getLogger('problog')

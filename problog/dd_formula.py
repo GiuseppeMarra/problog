@@ -29,7 +29,6 @@ from .util import Timer, mktempfile
 from .formula import BaseFormula, LogicFormula, atom, LogicNNF
 from .evaluator import EvaluatableDSP, Evaluator, FormulaEvaluatorNSP, SemiringLogProbability, SemiringProbability
 from .errors import InconsistentEvidenceError
-from .constraint import TrueConstraint, ConstraintAD
 
 
 class DD(LogicFormula, EvaluatableDSP):
@@ -134,20 +133,12 @@ class DD(LogicFormula, EvaluatableDSP):
         """Build the internal representation of the constraint of this formula."""
         self.get_manager().constraint_dd = self.get_manager().true()
         for c in self.constraints():
-            if isinstance(c, TrueConstraint):
-                for rule in c.as_clauses():
-                    new_constraint_dd = self.get_manager().conjoin(self.get_manager().constraint_dd, self.get_inode(rule[0]))
-                    self.get_manager().deref(self.get_manager().constraint_dd)
-                    self.get_manager().deref(self.get_inode(rule[0]))
-                    self.get_manager().constraint_dd = new_constraint_dd
-            else:
-                for rule in c.as_clauses():
-                    rule_sdd = self.get_manager().disjoin(*[self.get_inode(r) for r in rule])
-                    new_constraint_dd = self.get_manager().conjoin(self.get_manager().constraint_dd, rule_sdd)
-                    self.get_manager().deref(self.get_manager().constraint_dd)
-                    self.get_manager().deref(rule_sdd)
-                    self.get_manager().constraint_dd = new_constraint_dd
-
+            for rule in c.as_clauses():
+                rule_sdd = self.get_manager().disjoin(*[self.get_inode(r) for r in rule])
+                new_constraint_dd = self.get_manager().conjoin(self.get_manager().constraint_dd, rule_sdd)
+                self.get_manager().deref(self.get_manager().constraint_dd)
+                self.get_manager().deref(rule_sdd)
+                self.get_manager().constraint_dd = new_constraint_dd
 
     def to_dot(self, *args, **kwargs):
         if kwargs.get('use_internal'):
@@ -584,11 +575,9 @@ def build_dd(source, destination, **kwdargs):
                 raise TypeError('Unknown node type')
             # assert i == j  # Does not hold with constraints. See if-comment.
 
-        #TODO GIUSEPPE: for now, only for single atom constraints, to generalize
+        # Assumes ADConstraints are not part of BaseFormula.constraints(source)
         for c in BaseFormula.constraints(source):
-            if isinstance(c, TrueConstraint):
-                n = c.as_clauses()[0][0]
-                destination.add_constraint(TrueConstraint(n))
+            destination.add_constraint(c.copy())
 
         for name, node, label in source.get_names_with_label():
             destination.add_name(name, node, label)
