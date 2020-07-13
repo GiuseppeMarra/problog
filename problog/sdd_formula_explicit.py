@@ -25,7 +25,7 @@ Interface to Sentential Decision Diagrams (SDD) using the explicit encoding repr
 from __future__ import print_function
 from collections import namedtuple
 
-from .formula import LogicDAG, LogicFormula
+from .formula import LogicDAG, LogicFormula, BaseFormula
 from .core import transform
 from .errors import InconsistentEvidenceError
 from .util import Timer
@@ -365,23 +365,31 @@ def build_explicit_from_logicdag(source, destination, **kwdargs):
             else:
                 raise TypeError('Unknown node type')
 
+        rename = {}
         for name, node, label in source.get_names_with_label():
             if label == destination.LABEL_QUERY or label == destination.LABEL_EVIDENCE_MAYBE or \
-                    label == destination.LABEL_EVIDENCE_NEG or label == destination.LABEL_EVIDENCE_POS:  # TODO required?
+                    label == destination.LABEL_EVIDENCE_NEG or label == destination.LABEL_EVIDENCE_POS or \
+                    label == destination.LABEL_CONSTRAINT:  # TODO required?
                 if node is None or node == 0:
-                    destination.add_name(name, node, label)
+                    newnode = node
                 else:
                     mapped_line = line_map[abs(node)][2]
                     sign = -1 if node < 0 else 1
                     if node_to_indicator.get(mapped_line) is not None:  # Change internal node indicator
-                        destination.add_name(name, sign*node_to_indicator[mapped_line], label)
+                        newnode = sign*node_to_indicator[mapped_line]
                     else:
-                        destination.add_name(name, sign*mapped_line, label)
+                        newnode = sign*mapped_line
+                destination.add_name(name, newnode, label)
+                rename[node] = newnode
 
         if len(root_nodes) > 0:
             root_key = destination.add_and(root_nodes, name=None)
         else:
             root_key = None
+
+        # Assumes ADConstraints are not part of BaseFormula.constraints(source)
+        for c in BaseFormula.constraints(source):
+            destination.add_constraint(c.copy(rename=rename))
 
         destination.build_dd(root_key)
         #destination.cleanup_inodes()
