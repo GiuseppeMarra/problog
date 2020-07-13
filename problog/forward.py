@@ -68,6 +68,7 @@ class ForwardInference(DD):
 
         self._node_depths = None
         self.evidence_node = 0
+        self.constraint_node = 0
 
     def register_update_listener(self, obj):
         self._update_listeners.append(obj)
@@ -93,6 +94,17 @@ class ForwardInference(DD):
             else:
                 # Only deterministically true evidence
                 self.evidence_node = 0
+        if self.constraints():
+            constraint_nodes = set()
+            for c in self.constraints():
+                constraint_nodes |= set((n for n in c.get_nodes()))
+            if len(constraint_nodes) == 0:
+                # Only deterministically true evidence
+                self.constraint_node = 0
+            elif len(constraint_nodes) == 1:
+                self.constraint_node = constraint_nodes.pop()
+            else:
+                self.constraint_node = self.add_and(list(constraint_nodes))
 
         self._facts = []  # list of facts
         self._atoms_in_rules = defaultdict(OrderedSet)  # lookup all rules in which an atom is used
@@ -101,14 +113,14 @@ class ForwardInference(DD):
         self._compute_node_depths()
         for index, node, nodetype in self:
             if self._node_depths[index - 1] is not None:
-                # only include nodes that are reachable from a query or evidence
+                # only include nodes that are reachable from a query or evidence or constraints
                 if nodetype == 'atom':  # it's a fact
                     self._facts.append(index)
                     self.set_complete(index)
                 else:  # it's a compound
                     for atom in node.children:
                         self._atoms_in_rules[abs(atom)].add(index)
-        self.build_constraint_dd()
+        #self.build_constraint_dd()  # Not sure why here... (Vincent & Giuseppe)
         self.inodes = [None] * len(self)
         self._inodes_prev = [None] * len(self)
         self._inodes_old = [None] * len(self)
@@ -149,6 +161,8 @@ class ForwardInference(DD):
         current_nodes = set(abs(n) for q, n, l in self.labeled() if self.is_probabilistic(n))
         if self.is_probabilistic(self.evidence_node):
             current_nodes.add(abs(self.evidence_node))
+        if self.is_probabilistic(self.constraint_node):
+            current_nodes.add(abs(self.constraint_node))
         current_level = 0
         while current_nodes:
             self._node_levels.append(current_nodes)
@@ -296,6 +310,8 @@ class ForwardInference(DD):
     def build_dd(self):
         required_nodes = set([abs(n) for q, n, l in self.labeled() if self.is_probabilistic(n)])
         required_nodes |= set([abs(n) for q, n, v in self.evidence_all() if self.is_probabilistic(n)])
+        for c in self.constraints():
+            required_nodes |= set((n for n in c.get_nodes() if self.is_probabilistic(n)))
         if self.timeout:
             # signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(self.timeout)
