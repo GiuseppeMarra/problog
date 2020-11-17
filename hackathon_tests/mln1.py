@@ -4,32 +4,61 @@ from problog.engine import DefaultEngine
 from problog.sdd_formula import SDD
 
 from sys import argv
+from math import e
 
-pc = 0.2 # c = a v b
-# P(A) = P(A | c)P(c) + P(A | not c)(1-P(c))
-# 2/3 * 2/10 + 1/2 * 8/10 = 32/60
+""" Vincent's receipt:
+mln: 
+4 a v b
+
+problog:
+constr :- a.
+constr :- b.
+mln_constraint(constr, 4).
+
+aut translation:
+e...::constr_aux.
+new_constr :- constr_aux, constr.
+new_constr :- \+constr_aux, \+constr.
+constraint(new_constr).
+"""
+
+w=10
 
 p = PrologString(f"""
 
 0.5:: a.
 0.5:: b.    
 
-d:- a, \+b.
-
-%p = ew / (ew +1)
-
-{1-pc}::c_aux.
+{e / (e + 1)}::c_aux.
 c :- c_aux.
 
 c:- a.
 c:- b.
+
 constraint(c).
-%query(d).
-%query(c).
+
 query(a).
 
 """)
 
+p = PrologString(f"""
+
+0.5:: a.
+0.5:: b.    
+
+{e ** w / (e ** w + 1)}::c_aux.
+
+c_or:- a.
+c_or:- b.
+
+c_iff :- c_or, c_aux.
+c_iff :- \+c_or, \+c_aux.
+
+constraint(c_iff).
+
+query(a).
+
+""")
 
 # Prepare ProbLog engine
 engine = DefaultEngine(label_all=True)
@@ -46,6 +75,4 @@ result = sdd.evaluate()
 
 print(result)
 
-print("mln", 32/60)
-print((2 * 0.2 * 0.25 + 2*0.8*0.25)/(4 * 0.8 * 0.25 + 3*0.2*0.25))
-print((2 * 0.2 * 0.25 + 2*0.8*0.25)/(4 * 0.8 * 0.25 + 4*0.2*0.25))
+print(2*(e**w) / (3*(e**w) +1))
