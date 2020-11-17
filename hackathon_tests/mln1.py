@@ -60,6 +60,30 @@ query(a).
 
 """)
 
+
+p = PrologString(f"""
+0.3::a(1).
+0.2::b(1).
+
+constr(X) :- a(X).
+constr(X) :- b(X).
+
+0.3::constr_aux(X).
+constr_constr(X) :- constr(X), constr_aux(X).
+constr_constr(X) :- \+constr(X), \+constr_aux(X).
+constraint(constr_constr(X)).
+query(a(1)).
+""")
+
+# p = PrologString(f"""
+# 0.5::a.
+# 0.5::b.
+# c :- a.
+# c :- b.
+# mln_constraint(c,1).
+# query(a).
+# """)
+
 # Prepare ProbLog engine
 engine = DefaultEngine(label_all=True)
 db = engine.prepare(p)
