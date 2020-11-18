@@ -302,39 +302,14 @@ class ClauseDB(LogicProgram):
         variables = _AutoDict()
         term.apply(variables)
 
-        if term.functor == 'mln_constraint':  # TODO: Change mln_constraint to some variable at the top.
-            # TODO: Do same for constraints
-            # for example mln_constr(constr, 4) gets converted into
-            # (e**4 /e**4 + 1)::constr_aux.
-            # constr_constr :- constr_aux, constr.
-            # constr_constr :- \+constr_aux, \+constr.
-            # constraint(constr_constr).
-
-            constr_term, weight = term.args
-            assert isinstance(weight, Constant)
-
-            # Add aux_term
-            numerator = math.e ** weight.compute_value()
-            aux_term = Term(f"{constr_term.functor}_aux", *constr_term.args, p=Constant(numerator/(numerator + 1)))
-            self.add_statement(aux_term, scope=scope)
-
-            # Add iff
-            new_constr_term = Term(f"{constr_term.functor}_constr", *constr_term.args)
-            self.add_statement(Clause(new_constr_term, And(aux_term, constr_term)), scope=scope)
-            self.add_statement(Clause(new_constr_term, And(Not("\\+", aux_term), Not("\\+", constr_term))), scope=scope)
-
-            # Add constraint
-            new_constr = Term("constraint", new_constr_term)
-            return self.add_statement(new_constr, scope=scope)
+        # If the fact has variables, threat is as a clause.
+        if len(variables) == 0:
+            term = self._scope_term(term, scope)
+            fact_node = self._append_node(self._fact(term.functor, term.args,
+                                                     term.probability, term.location))
+            return self._add_define_node(term, fact_node)
         else:
-            # If the fact has variables, threat is as a clause.
-            if len(variables) == 0:
-                term = self._scope_term(term, scope)
-                fact_node = self._append_node(self._fact(term.functor, term.args,
-                                                         term.probability, term.location))
-                return self._add_define_node(term, fact_node)
-            else:
-                return self.add_clause(Clause(term, Term('true')), scope=scope)
+            return self.add_clause(Clause(term, Term('true')), scope=scope)
 
     def add_extern(self, predicate, arity, func, scope=None):
         head = Term(predicate, *[None] * arity)

@@ -62,17 +62,12 @@ query(a).
 
 
 p = PrologString(f"""
-0.3::a(1).
-0.2::b(1).
-
-constr(X) :- a(X).
-constr(X) :- b(X).
-
-0.3::constr_aux(X).
-constr_constr(X) :- constr(X), constr_aux(X).
-constr_constr(X) :- \+constr(X), \+constr_aux(X).
-constraint(constr_constr(X)).
-query(a(1)).
+0.5::a.
+0.5::b.
+c :- a ; b.
+mln_constraint(c,4).
+mln_constraint(c,3) :- a.
+query(a).
 """)
 
 # p = PrologString(f"""
@@ -92,7 +87,7 @@ db = engine.prepare(p)
 gp = engine.ground_all(db)
 
 # Create SDD circuit from program
-sdd = SDD.createFrom(gp) # Use SDDs
+sdd = SDD.createFrom(gp)  # Use SDDs
 
 # Evaluate the circuit to obtain probabilities
 result = sdd.evaluate()

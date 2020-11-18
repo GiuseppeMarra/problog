@@ -32,7 +32,7 @@ from .core import ProbLogError
 
 import os
 import sys
-
+import math
 
 class LogicProgram(ProbLogObject):
     """LogicProgram"""
@@ -527,7 +527,67 @@ class ExtendedPrologFactory(PrologFactory):
                 new_heads.append(head)
         return super(ExtendedPrologFactory, self).build_clause(functor, new_heads, operand2, location, **extra)
 
-DefaultPrologFactory = ExtendedPrologFactory
+
+class ConstraintPrologFactory(ExtendedPrologFactory):
+    """Prolog with extra syntactic sugar for negation AND syntactic sugar for soft constraints.
+
+    Non-standard syntax:
+    - Negative head literals [Meert and Vennekens, PGM 2014]: 0.5::\+a :- b.
+    - mln_constraint(c,4).
+    """
+    def __init__(self, identifier=0):
+        ExtendedPrologFactory.__init__(self, identifier)
+
+    def build_program(self, clauses):
+        """
+        :param clauses:
+        :return:
+        """
+
+
+        # mln_constraint(c(X), w) :- a(X).
+        # translates to
+        # (e^w / (e^w + 1))::c_aux(X).
+        # constr(X) :- c(X), c_aux(X).
+        # constr(X) :- \+c(X), \+c_aux(X).
+        # constraint(constr(X)) :- a(X).
+        new_clauses = []
+        for clause in clauses:
+            if type(clause) == Term and clause.functor == 'mln_constraint':  # TODO: Change mln_constraint to some variable at the top.
+                # mln_constraint(c(X), w).
+                # translates to
+                # (e^w / (e^w + 1))::c_aux.
+                # constr :- c(X), c_aux.
+                # constr :- \+c(X), \+c_aux.
+                # constraint(constr)
+                mln_term = clause
+                constr_term, weight = mln_term.args
+                assert isinstance(weight, Constant)
+
+                # Add aux_term
+                # (e^w / (e^w + 1))::c_aux.
+                numerator = math.e ** weight.compute_value()
+                aux_term = Term(f"{constr_term.functor}_aux", *constr_term.args,
+                                p=Constant(numerator / (numerator + 1)))
+                new_clauses.append(aux_term)
+
+                # Add iff
+                # constr :- c(X), c_aux.
+                # constr :- \+c(X), \+c_aux.
+                new_constr_term = Term(f"{constr_term.functor}_constr", *constr_term.args)
+                new_clauses.append(Clause(new_constr_term, And(aux_term, constr_term)))
+                new_clauses.append(Clause(new_constr_term, And(Not("\\+", aux_term), Not("\\+", constr_term))))
+
+                # Add constraint
+                # constraint(constr)
+                new_clauses.append(Term("constraint", new_constr_term))
+            else:
+                new_clauses.append(clause)
+
+        return super(ConstraintPrologFactory, self).build_program(new_clauses)
+
+
+DefaultPrologFactory = ConstraintPrologFactory
 
 
 @transform(str, LogicProgram)
