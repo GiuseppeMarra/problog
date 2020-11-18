@@ -130,10 +130,7 @@ class SimpleDDNNFEvaluator(Evaluator):
         :type ignore_type: None | List
         """
         ignore_type = ignore_type or []
-        for constraint in self.formula.constraints():
-            if type(constraint) not in ignore_type:
-                return True
-        return False
+        return any(type(constraint) not in ignore_type for constraint in self.formula.constraints())
 
     def _reset_value(self, index, pos, neg):
         self.set_weight(index, pos, neg)
@@ -144,10 +141,18 @@ class SimpleDDNNFEvaluator(Evaluator):
         :return: The WMC of the root of this formula (WMC of node len(self.formula)), multiplied with weight of True
         (self.weights.get(0)).
         """
-        result = self._get_weight(len(self.formula))
+        result = self._get_weight(len(self.formula))  # Assumes root is last node
+        # Multiply with weight (0) in case a weight was attached to true.
         return self.semiring.times(result, self.weights.get(0)[0]) if self.weights.get(0) is not None else result
 
     def _get_weight(self, index):
+        """
+        Get the weight of the given index (node).
+        :param index: The index (node) to get the weight of
+        :return: The weight of the given index.
+        If index == 0 (represents True), then self.semiring.one() is returned.
+        If index is None (represents False), then self.semiring.zero() is returned
+        """
         if index == 0:
             return self.semiring.one()
         elif index is None:
@@ -157,6 +162,8 @@ class SimpleDDNNFEvaluator(Evaluator):
             w = self.weights.get(abs_index)  # Leaf nodes
             if w is not None:
                 return w[index < 0]
+
+            # index isn't a leaf node. Check cache or compute, cache and return the node value
             w = self.cache_intermediate.get(abs_index)  # Intermediate nodes
             if w is None:
                 w = self._calculate_weight(index)

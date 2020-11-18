@@ -538,8 +538,6 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
     def __init__(self, identifier=0):
         ExtendedPrologFactory.__init__(self, identifier)
 
-
-
     def _create_auxiliary(self, mln_term):
         new_clauses = []
 
@@ -562,15 +560,18 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
         new_clauses.append(Clause(new_constr_term, And(Not("\\+", aux_term), Not("\\+", constr_term))))
         return new_constr_term, new_clauses
 
+    # mln_constraint((a ; b), w).
+    # translates to
+    # (e^w / (e^w + 1))::c_aux.
+    # constr :- (a ; b), c_aux.
+    # constr :- \+(a ; b), \+c_aux.
+    # constraint(constr)
+
     def build_program(self, clauses):
         """
         :param clauses:
         :return:
         """
-
-
-
-
         new_clauses = []
         for clause in clauses:
             if type(clause) == Term and clause.functor == 'mln_constraint':  # TODO: Change mln_constraint to some variable at the top.
@@ -581,8 +582,6 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
                 # constr :- \+c(X), \+c_aux.
                 # constraint(constr)
                 mln_term = clause
-
-
 
                 # (e^w / (e^w + 1))::c_aux.
                 # constr :- c(X), c_aux.
@@ -613,7 +612,7 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
 
                 # Add constraint
                 # constraint(constr(X)) :- a(X).
-                new_clauses.append(Clause(head = Term("constraint", new_constr_term), body = clause.body))
+                new_clauses.append(Clause(head=Term("constraint", new_constr_term), body = clause.body))
             else:
                 new_clauses.append(clause)
 
