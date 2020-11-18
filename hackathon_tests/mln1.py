@@ -65,9 +65,22 @@ p = PrologString(f"""
 0.5::a.
 0.5::b.
 c :- a ; b.
-mln_constraint(c,4).
+%mln_constraint(c,4).
 mln_constraint(c,3) :- a.
 query(a).
+""")
+
+p = PrologString(f"""
+0.5::a(cost1).
+0.5::b(cost1).
+0.5::a(cost2).
+0.5::b(cost2).
+d(cost1).
+d(cost2).
+c(X) :- a(X) ; b(X).
+mln_constraint(c(X),3) :- d(X).
+query(a(cost1)).
+query(a(cost2)).
 """)
 
 # p = PrologString(f"""
@@ -94,4 +107,4 @@ result = sdd.evaluate()
 
 print(result)
 
-print(2*(e**w) / (3*(e**w) +1))
+# print(2*(e**w) / (3*(e**w) +1))
