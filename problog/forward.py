@@ -47,11 +47,10 @@ from collections import defaultdict
 
 
 def timeout_handler(signum, frame):
-    raise SystemError('Process timeout (Python) [%s]' % signum)
+    raise SystemError("Process timeout (Python) [%s]" % signum)
 
 
 class ForwardInference(DD):
-
     def __init__(self, compile_timeout=None, **kwdargs):
         super(ForwardInference, self).__init__(auto_compact=False, **kwdargs)
 
@@ -107,14 +106,16 @@ class ForwardInference(DD):
                 self.constraint_node = self.add_and(list(constraint_nodes))
 
         self._facts = []  # list of facts
-        self._atoms_in_rules = defaultdict(OrderedSet)  # lookup all rules in which an atom is used
+        self._atoms_in_rules = defaultdict(
+            OrderedSet
+        )  # lookup all rules in which an atom is used
         self._completed = [False] * len(self)
 
         self._compute_node_depths()
         for index, node, nodetype in self:
             if self._node_depths[index - 1] is not None:
                 # only include nodes that are reachable from a query or evidence or constraints
-                if nodetype == 'atom':  # it's a fact
+                if nodetype == "atom":  # it's a fact
                     self._facts.append(index)
                     self.set_complete(index)
                 else:  # it's a compound
@@ -158,7 +159,9 @@ class ForwardInference(DD):
         self._node_depths = [None] * len(self)
         self._node_levels = []
         # Start with current nodes
-        current_nodes = set(abs(n) for q, n, l in self.labeled() if self.is_probabilistic(n))
+        current_nodes = set(
+            abs(n) for q, n, l in self.labeled() if self.is_probabilistic(n)
+        )
         if self.is_probabilistic(self.evidence_node):
             current_nodes.add(abs(self.evidence_node))
         if self.is_probabilistic(self.constraint_node):
@@ -171,7 +174,7 @@ class ForwardInference(DD):
                 self._node_depths[index - 1] = current_level
                 node = self.get_node(index)
                 nodetype = type(node).__name__
-                if nodetype != 'atom':
+                if nodetype != "atom":
                     for c in node.children:
                         if self.is_probabilistic(c):
                             if self._node_depths[abs(c) - 1] is None:
@@ -194,7 +197,7 @@ class ForwardInference(DD):
                     else:
                         node = self.get_node(rule)
                         nodetype = type(node).__name__
-                        if nodetype == 'conj':
+                        if nodetype == "conj":
                             rule_minmax = max(minmax, rule_minmax)
                         else:  # disj
                             rule_minmax = min(minmax, rule_minmax)
@@ -216,14 +219,16 @@ class ForwardInference(DD):
                 # Current node is best child => we need to recompute
                 parent_node = self.get_node(parent)
                 parent_nodetype = type(parent_node).__name__
-                parent_children_minmax = [self._node_minmax[c - 1]
-                                          for c in parent_node.children
-                                          if not self.is_complete(c)]
+                parent_children_minmax = [
+                    self._node_minmax[c - 1]
+                    for c in parent_node.children
+                    if not self.is_complete(c)
+                ]
                 if not parent_children_minmax:
                     # No incomplete children
                     self.set_complete(parent)
                     parent_minmax = 0
-                elif parent_nodetype == 'conj':
+                elif parent_nodetype == "conj":
                     parent_minmax == max(parent_children_minmax)
                 else:
                     parent_minmax == min(parent_children_minmax)
@@ -316,7 +321,7 @@ class ForwardInference(DD):
             # signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(self.timeout)
             signal.signal(signal.SIGALRM, timeout_handler)
-            logging.getLogger('problog').info('Set timeout:', self.timeout)
+            logging.getLogger("problog").info("Set timeout:", self.timeout)
         try:
             self.init_build()
             updated_nodes = OrderedSet(self._facts)
@@ -326,10 +331,10 @@ class ForwardInference(DD):
             self._propagate_complete(False)
         except SystemError as err:
             self._propagate_complete(True)
-            logging.getLogger('problog').warning(err)
+            logging.getLogger("problog").warning(err)
         except KeyboardInterrupt as err:
             self._propagate_complete(True)
-            logging.getLogger('problog').warning(err)
+            logging.getLogger("problog").warning(err)
 
         signal.alarm(0)
         self.build_constraint_dd()
@@ -342,16 +347,18 @@ class ForwardInference(DD):
             inode = self.get_inode(i)
             if inode is not None:
                 inode = int(inode)
-            if t == 'atom':
-                j = destination.add_atom(n.identifier, n.probability, n.group, name=inode)
-            elif t == 'conj':
+            if t == "atom":
+                j = destination.add_atom(
+                    n.identifier, n.probability, n.group, name=inode
+                )
+            elif t == "conj":
                 children = [c for c in n.children if self.get_inode(c) is not None]
                 j = destination.add_and(children, name=inode)
-            elif t == 'disj':
+            elif t == "disj":
                 children = [c for c in n.children if self.get_inode(c) is not None]
                 j = destination.add_or(children, name=inode)
             else:
-                raise TypeError('Unknown node type')
+                raise TypeError("Unknown node type")
             assert i == j
 
         for name, node, label in source.get_names_with_label():
@@ -372,7 +379,7 @@ class ForwardInference(DD):
         node = self.get_node(index)
         assert index > 0
         nodetype = type(node).__name__
-        if nodetype == 'conj':
+        if nodetype == "conj":
             children = [self.get_inode(c) for c in node.children]
             children_complete = [self.is_complete(c) for c in node.children]
             if None in children:
@@ -382,10 +389,12 @@ class ForwardInference(DD):
             if False not in children_complete:
                 self.set_complete(index)
 
-        elif nodetype == 'disj':
+        elif nodetype == "disj":
             children = [self.get_inode(c) for c in node.children]
             children_complete = [self.is_complete(c) for c in node.children]
-            children = list(filter(None, children))  # discard children that are still unknown
+            children = list(
+                filter(None, children)
+            )  # discard children that are still unknown
             if children:
                 newnode = self.get_manager().disjoin(*children)
             else:
@@ -394,7 +403,7 @@ class ForwardInference(DD):
                 self.set_complete(index)
 
         else:
-            raise TypeError('Unexpected node type.')
+            raise TypeError("Unexpected node type.")
 
         # Add constraints
         if newnode is not None:
@@ -429,7 +438,7 @@ class ForwardInference(DD):
         """
         assert self.is_probabilistic(index)
         node = self.get_node(abs(index))
-        if type(node).__name__ == 'atom':
+        if type(node).__name__ == "atom":
             av = self.atom2var.get(abs(index))
             if av is None:
                 av = self.get_manager().add_variable()
@@ -493,6 +502,7 @@ class _ForwardSDD(SDD, ForwardInference):
         """
         from .sdd_formula_explicit import build_explicit_from_forwardsdd
         from .sdd_formula_explicit import SDDExplicit
+
         return build_explicit_from_forwardsdd(source=self, destination=SDDExplicit())
 
     def copy_to_noref(self, destination):
@@ -584,7 +594,9 @@ class ForwardBDD(LogicFormula, EvaluatableDSP):
         return BDD.is_available()
 
     def _create_evaluator(self, semiring, weights, **kwargs):
-        return ForwardEvaluator(self, semiring, _ForwardBDD(**self.kwargs), weights, **kwargs)
+        return ForwardEvaluator(
+            self, semiring, _ForwardBDD(**self.kwargs), weights, **kwargs
+        )
 
 
 # Inform the system that we can create a ForwardFormula in the same way as a LogicFormula.
@@ -609,10 +621,13 @@ class ForwardEvaluator(Evaluator):
 
     def node_updated(self, source, node, complete):
         is_evidence = node == abs(source.evidence_node)
-        name = [n for n, i, l in self.formula.labeled()
-                if source.is_probabilistic(i) and abs(i) == node]
+        name = [
+            n
+            for n, i, l in self.formula.labeled()
+            if source.is_probabilistic(i) and abs(i) == node
+        ]
         if is_evidence:
-            name = ('evidence',)
+            name = ("evidence",)
         if name:
             name = name[0]
             weights = {}
@@ -622,10 +637,11 @@ class ForwardEvaluator(Evaluator):
                     weights[av] = weight
             inode = source.get_inode(node, final=True)
             if inode is not None:
-                enode = source.get_manager().conjoin(source.get_evidence_inode(),
-                                                     source.get_constraint_inode())
+                enode = source.get_manager().conjoin(
+                    source.get_evidence_inode(), source.get_constraint_inode()
+                )
                 if self.fsdd.get_manager().is_false(enode):
-                    raise InconsistentEvidenceError(context=' during compilation')
+                    raise InconsistentEvidenceError(context=" during compilation")
 
                 qnode = source.get_manager().conjoin(inode, enode)
                 tvalue = source.get_manager().wmc(enode, weights, self.semiring)
@@ -633,10 +649,12 @@ class ForwardEvaluator(Evaluator):
                 result = self.semiring.normalize(value, tvalue)
                 self._results[node] = result
 
-                debug_msg = 'update query %s: %s after %ss' % \
-                            (name, self.semiring.result(result, self.formula),
-                             '%.4f' % (time.time() - self._start_time))
-                logging.getLogger('problog').debug(debug_msg)
+                debug_msg = "update query %s: %s after %ss" % (
+                    name,
+                    self.semiring.result(result, self.formula),
+                    "%.4f" % (time.time() - self._start_time),
+                )
+                logging.getLogger("problog").debug(debug_msg)
 
             if complete:
                 self._complete.add(node)
@@ -646,7 +664,9 @@ class ForwardEvaluator(Evaluator):
         #             self.node_updated(source, c, complete)
 
     def node_completed(self, source, node):
-        qs = set(abs(qi) for qn, qi, ql in source.labeled() if source.is_probabilistic(qi))
+        qs = set(
+            abs(qi) for qn, qi, ql in source.labeled() if source.is_probabilistic(qi)
+        )
         if node in qs:
             self._complete.add(node)
 
@@ -662,11 +682,12 @@ class ForwardEvaluator(Evaluator):
             build_dd(self.formula, self.fsdd)
 
         # Update weights with constraints and evidence
-        enode = self.fsdd.get_manager().conjoin(self.fsdd.get_evidence_inode(),
-                                                self.fsdd.get_constraint_inode())
+        enode = self.fsdd.get_manager().conjoin(
+            self.fsdd.get_evidence_inode(), self.fsdd.get_constraint_inode()
+        )
 
         if self.fsdd.get_manager().is_false(enode):
-            raise InconsistentEvidenceError(context=' during compilation')
+            raise InconsistentEvidenceError(context=" during compilation")
 
         # Make sure all atoms exist in atom2var.
         for name, node, label in self.fsdd.labeled():
@@ -724,11 +745,11 @@ class ForwardEvaluator(Evaluator):
         else:
             n = self.formula.get_node(abs(index))
             nt = type(n).__name__
-            if nt == 'atom':
+            if nt == "atom":
                 wp = self._results[index]
                 # wp, wn = self.weights.get(abs(index))
                 if index < 0:
-                    #wn = self.semiring.negate(wp)
+                    # wn = self.semiring.negate(wp)
                     return self.semiring.result(wp, self.formula)
                 else:
                     return self.semiring.result(wp, self.formula)
@@ -737,26 +758,44 @@ class ForwardEvaluator(Evaluator):
                 if index < 0:
                     if -index in self._results:
                         if -index in self._complete:
-                            return self.semiring.result(self.semiring.negate(self._results[-index]), self.formula)
+                            return self.semiring.result(
+                                self.semiring.negate(self._results[-index]),
+                                self.formula,
+                            )
                         else:
-                            return self.semiring.result(self.semiring.zero()), \
-                                   self.semiring.result(self.semiring.negate(self._results[-index]), self.formula)
+                            return (
+                                self.semiring.result(self.semiring.zero()),
+                                self.semiring.result(
+                                    self.semiring.negate(self._results[-index]),
+                                    self.formula,
+                                ),
+                            )
                     else:
-                        return self.semiring.result(self.semiring.zero()), \
-                               self.semiring.result(self.semiring.one())
+                        return (
+                            self.semiring.result(self.semiring.zero()),
+                            self.semiring.result(self.semiring.one()),
+                        )
                 else:
                     if index in self._results:
                         if index in self._complete:
-                            return self.semiring.result(self._results[index], self.formula)
+                            return self.semiring.result(
+                                self._results[index], self.formula
+                            )
                         else:
-                            return self.semiring.result(self._results[index], self.formula), \
-                                   self.semiring.result(self.semiring.one())
+                            return (
+                                self.semiring.result(
+                                    self._results[index], self.formula
+                                ),
+                                self.semiring.result(self.semiring.one()),
+                            )
                     else:
-                        return self.semiring.result(self.semiring.zero()), \
-                               self.semiring.result(self.semiring.one())
+                        return (
+                            self.semiring.result(self.semiring.zero()),
+                            self.semiring.result(self.semiring.one()),
+                        )
 
     def evaluate_evidence(self):
-        raise NotImplementedError('Evaluator.evaluate_evidence is an abstract method.')
+        raise NotImplementedError("Evaluator.evaluate_evidence is an abstract method.")
 
     # def add_evidence(self, node):
     #     """Add evidence"""
