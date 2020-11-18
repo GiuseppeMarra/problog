@@ -32,6 +32,28 @@ mln_constraint(c(X,Y),0.3) :- person(X), person(Y).
 query(smokes(bob)).
 """)
 
+p = PrologString(f"""
+
+person(ann).
+person(bob).
+person(carl).
+
+friend(ann,bob).
+friend(carl, bob).
+
+%friend(X,Y) :- friend(Y,X).
+0.3::smokes(X) :- person(X).
+
+% smokes(X) ^ friend(X,Y)) -> smokes(Y)
+temp1(X,Y) :- smokes(X), friend(X,Y).
+temp2(Y) :- smokes(Y).
+c(X,Y) :- temp2(Y); \+ temp1(X,Y).
+
+%constraint(c(X,Y)) :- person(X), person(Y).
+mln_constraint(c(X,Y),0.3) :- person(X), person(Y).
+query(smokes(bob)).
+""")
+
 
 
 # Prepare ProbLog engine

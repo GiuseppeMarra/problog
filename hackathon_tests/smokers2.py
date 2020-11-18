@@ -33,7 +33,7 @@ c(X,Y) :- temp2(Y); \+ temp1(X,Y).
 
 constraint(c(X,Y)) :- person(X), person(Y).
 
-mln_constraint(smokes(X) ^ friend(X,Y)) -> smokes(Y), t(0.5)).
+% mln_constraint(smokes(X) ^ friend(X,Y)) -> smokes(Y), t(0.5)).
 
 %mln_constraint(c(X,Y),100) :- person(X), person(Y).
 query(smokes(bob)).

@@ -83,6 +83,14 @@ query(a(cost1)).
 query(a(cost2)).
 """)
 
+
+p = PrologString(f"""
+0.5::a.
+0.5::b.
+%mln_constraint((\+a ; b), 0.1).  %a  b
+query(a).
+""")
+
 # p = PrologString(f"""
 # 0.5::a.
 # 0.5::b.
