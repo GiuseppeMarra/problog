@@ -538,6 +538,30 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
     def __init__(self, identifier=0):
         ExtendedPrologFactory.__init__(self, identifier)
 
+
+
+    def _create_auxiliary(self, mln_term):
+        new_clauses = []
+
+        constr_term, weight = mln_term.args
+        assert isinstance(weight, Constant)
+
+        # Add aux_term
+        # (e^w / (e^w + 1))::c_aux.
+        numerator = math.e ** weight.compute_value()
+        p = numerator / (numerator + 1)
+        aux_term = Term(f"{constr_term.functor}_aux", *constr_term.args,
+                        p=Constant(p))
+        new_clauses.append(aux_term)
+
+        # Add iff
+        # constr :- c(X), c_aux.
+        # constr :- \+c(X), \+c_aux.
+        new_constr_term = Term(f"{constr_term.functor}_constr", *constr_term.args)
+        new_clauses.append(Clause(new_constr_term, And(aux_term, constr_term)))
+        new_clauses.append(Clause(new_constr_term, And(Not("\\+", aux_term), Not("\\+", constr_term))))
+        return new_constr_term, new_clauses
+
     def build_program(self, clauses):
         """
         :param clauses:
@@ -545,12 +569,8 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
         """
 
 
-        # mln_constraint(c(X), w) :- a(X).
-        # translates to
-        # (e^w / (e^w + 1))::c_aux(X).
-        # constr(X) :- c(X), c_aux(X).
-        # constr(X) :- \+c(X), \+c_aux(X).
-        # constraint(constr(X)) :- a(X).
+
+
         new_clauses = []
         for clause in clauses:
             if type(clause) == Term and clause.functor == 'mln_constraint':  # TODO: Change mln_constraint to some variable at the top.
@@ -561,26 +581,39 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
                 # constr :- \+c(X), \+c_aux.
                 # constraint(constr)
                 mln_term = clause
-                constr_term, weight = mln_term.args
-                assert isinstance(weight, Constant)
 
-                # Add aux_term
+
+
                 # (e^w / (e^w + 1))::c_aux.
-                numerator = math.e ** weight.compute_value()
-                aux_term = Term(f"{constr_term.functor}_aux", *constr_term.args,
-                                p=Constant(numerator / (numerator + 1)))
-                new_clauses.append(aux_term)
-
-                # Add iff
                 # constr :- c(X), c_aux.
                 # constr :- \+c(X), \+c_aux.
-                new_constr_term = Term(f"{constr_term.functor}_constr", *constr_term.args)
-                new_clauses.append(Clause(new_constr_term, And(aux_term, constr_term)))
-                new_clauses.append(Clause(new_constr_term, And(Not("\\+", aux_term), Not("\\+", constr_term))))
+                new_constr_term, aux_clauses = self._create_auxiliary(mln_term)
+                new_clauses.extend(aux_clauses)
 
                 # Add constraint
                 # constraint(constr)
                 new_clauses.append(Term("constraint", new_constr_term))
+            elif type(clause) == Clause and clause.head.functor == 'mln_constraint':  # TODO: Change mln_constraint to some variable at the top.
+                # mln_constraint(c(X), w) :- a(X).
+                # translates to
+                # (e^w / (e^w + 1))::c_aux(X).
+                # constr(X) :- c(X), c_aux(X).
+                # constr(X) :- \+c(X), \+c_aux(X).
+                # constraint(constr(X)) :- a(X).
+                mln_term = clause.head
+                constr_term, weight = mln_term.args
+                assert isinstance(weight, Constant)
+
+                # Add aux_term
+                # (e^w / (e^w + 1))::c_aux(X).
+                # constr(X) :- c(X), c_aux(X).
+                # constr(X) :- \+c(X), \+c_aux(X).
+                new_constr_term, aux_clauses = self._create_auxiliary(mln_term)
+                new_clauses.extend(aux_clauses)
+
+                # Add constraint
+                # constraint(constr(X)) :- a(X).
+                new_clauses.append(Clause(head = Term("constraint", new_constr_term), body = clause.body))
             else:
                 new_clauses.append(clause)
 
