@@ -26,7 +26,7 @@ from __future__ import print_function
 
 
 from .util import Timer, mktempfile
-from .formula import LogicFormula, atom, LogicNNF
+from .formula import LogicFormula, atom, LogicNNF, BaseFormula
 from .evaluator import (
     EvaluatableDSP,
     Evaluator,
