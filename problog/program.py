@@ -605,8 +605,9 @@ class ConstraintPrologFactory(ExtendedPrologFactory):
 
         # Add aux_term
         # (e^w / (e^w + 1))::c_aux.
-        numerator = math.e ** weight.compute_value()
-        p = numerator / (numerator + 1)
+        #numerator = math.e ** weight.compute_value()
+        #p = numerator / (numerator + 1)
+        p = weight.compute_value()
         aux_term = Term(f"{constr_term.functor}_aux", *constr_term.args,
                         p=Constant(p))
         new_clauses.append(aux_term)
