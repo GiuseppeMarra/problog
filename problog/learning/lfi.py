@@ -644,6 +644,8 @@ class LFIProblem(LogicProgram):
                 #     "lfi_par", Constant(self.count), Term("t", *prob_args, *atom1.args)
                 # )
                 # lfi_prob = Term("lfi_prob", Constant(self.count), Term("t"))
+                # TODO: Giuseppe, Paolo, Vincent: Can we use atom1.variables() instead of .args? because we are only
+                # interested in Variables rather than the args? just so for different variables it has different weights
                 lfi_fact = Term("lfi_fact", Constant(self.count), *atom1.args)
                 lfi_body = Term("lfi_body", Constant(self.count), *atom1.args)
                 lfi_par = Term("lfi_par", Constant(self.count), *atom1.args)

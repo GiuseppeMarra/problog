@@ -1,0 +1,3 @@
+evidence(b, false).
+evidence(a, false).
+%evidence(c_iff, true).
