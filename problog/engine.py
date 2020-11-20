@@ -459,7 +459,29 @@ class ClauseDBEngine(GenericEngine):
                 raise UnknownClause(term.signature, location=db.lineno(term.location))
         return gp, results
 
-    def ground_constraints(self, db, target, constraints, propagate_constraints=False):
+    def _propagate_evidence_and_constraints(self, target):
+        """ #TODO: Add documentation """
+        with Timer("Propagating evidence and constraints"):
+            target.lookup_evidence = {}
+            # Extract evidence nodes
+            nodes = [
+                node
+                for name, node in target.evidence()
+                if node != 0 and node is not None
+            ]
+            # Extract nodes of all unit clause constraints
+            for constraint in target.constraints():
+                clauses = constraint.as_clauses()
+                if len(clauses) == 1 and len(clauses[0]) == 1:
+                    node = clauses[0][0]
+                    if node is not None and node != 0:
+                        nodes.append(clauses[0][0])
+            # maybe we should create similar code for constraints?
+            # Because now ground_constraint should be called after ground_evidence and if there is any inconsistentConstraint
+            # due to propagation it will throw an InconsistentEvidence error
+            target.propagate(nodes, target.lookup_evidence)
+
+    def ground_constraints(self, db, target, constraints):
         logger = logging.getLogger('problog')
         # Ground constraints
         for query in constraints:
@@ -469,19 +491,6 @@ class ClauseDBEngine(GenericEngine):
         for _, v in target.get_names(label=target.LABEL_CONSTRAINT):
             # TODO: If we want to add more constraint types, you have to change this here.
             target.add_constraint(TrueConstraint(v))
-        if propagate_constraints:
-            with Timer("Propagating constraints"):
-                constr_nodes = []
-                for constraint in target.constraints():
-                    clauses = constraint.as_clauses()
-                    if len(clauses) == 1 and len(clauses[0]) == 1:
-                        node = clauses[0][0]
-                        if node is not None and node != 0:
-                            constr_nodes.append(clauses[0][0])
-                target.propagate(constr_nodes, target.lookup_evidence) #TODO: Here we populate evidence
-                # maybe we should create similar code for constraints?
-                # Because now ground_constraint should be called after ground_evidence and if there is any inconsistentConstraint
-                # due to propagation it will throw an InconsistentEvidence error
 
     def ground_evidence(self, db, target, evidence, propagate_evidence=False):
         logger = logging.getLogger("problog")
@@ -540,14 +549,7 @@ class ClauseDBEngine(GenericEngine):
                     )
                     logger.debug("Ground program size: %s", len(target))
         if propagate_evidence:
-            with Timer("Propagating evidence"):
-                target.lookup_evidence = {}
-                ev_nodes = [
-                    node
-                    for name, node in target.evidence()
-                    if node != 0 and node is not None
-                ]
-                target.propagate(ev_nodes, target.lookup_evidence)
+            self._propagate_evidence_and_constraints(target)
 
     def ground_queries(self, db, target, queries):
         logger = logging.getLogger("problog")
@@ -596,8 +598,8 @@ class ClauseDBEngine(GenericEngine):
                     )  # TODO can we add a location?
             # Ground queries
             if propagate_evidence:
+                self.ground_constraints(db, target, constraints)
                 self.ground_evidence(db, target, evidence, propagate_evidence=propagate_evidence)
-                self.ground_constraints(db, target, constraints, propagate_constraints=propagate_evidence)
                 self.ground_queries(db, target, queries)
                 if hasattr(target, "lookup_evidence"):
                     logger.debug(
@@ -605,8 +607,8 @@ class ClauseDBEngine(GenericEngine):
                     )
             else:
                 self.ground_queries(db, target, queries)
-                self.ground_evidence(db, target, evidence)
                 self.ground_constraints(db, target, constraints)
+                self.ground_evidence(db, target, evidence)
         return target
 
     def add_external_calls(self, externals):

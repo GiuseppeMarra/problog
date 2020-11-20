@@ -1,3 +1,11 @@
+evidence(a,false).
+evidence(b).
+---
+evidence(a).
+evidence(b).
+---
+evidence(a).
+evidence(b,false).
+---
 evidence(b, false).
 evidence(a, false).
-%evidence(c_iff, true).
